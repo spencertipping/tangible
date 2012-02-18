@@ -1,0 +1,5 @@
+Tools for bootstrapping the first Tangible object.
+Like self-modifying Perl, Tangible requires a nontrivial amount of
+bootstrapping logic. I ended up writing self-modifying Perl by hand and doing a
+lot of rewinding with Git, but I want to take a more structured approach for
+Tangible.
