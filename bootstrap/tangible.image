@@ -1658,15 +1658,16 @@ caterwaul('js_all')(function () {
   -where [$                  = caterwaul,
           stream             = $.serialization({opaques: false}),
 
-          header             = '#!/usr/bin/env node',
           self_name()        = $.process.argv[1],
           rewrite_self(data) = $.require('fs').writeFileSync(tangible.self_name(), data, 'utf8'),
+          serialize()        = '#!/usr/bin/env node\n#{$.replicator()}\ncaterwaul.tangible(#{$.serialization({opaques: false}).encode(tangible) /!JSON.stringify})',
 
           init_function()    = $.require('repl').start('tangible> ') -se [it.context.tangible = it.context.$ = tangible],
 
           tangible           = capture [self_name    = self_name,
                                         init         = init_function,
-                                        rewrite_self = rewrite_self]]})();
+                                        rewrite_self = rewrite_self,
+                                        serialize    = serialize]]})();
 
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
