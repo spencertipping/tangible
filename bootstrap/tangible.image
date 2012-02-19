@@ -1670,7 +1670,13 @@ caterwaul('js_all')(function () {
                                         associate(k, v)    = tangible[k] = v,
                                         cat(k)             = tangible[k],
 
-                                        process_line(l)    = tangible[words[0]].apply(tangible, words.slice(1)) /-process.stdout.write/ 'utf8'
+                                        module(filename)   = $.module(name, compiled_form)
+                                                     -where [module_pattern = 'caterwaul.module(_name, _f);' /!$.parse,
+                                                             match          = module_pattern /~match/ $.parse($.require('fs').readFileSync(filename, 'utf8')),
+                                                             name           = match._name.as_escaped_string(),
+                                                             compiled_form  = match._f /!$.compile],
+
+                                        process_line(l)    = tangible[words[0]].apply(tangible, words.slice(1)).toString() /-process.stdout.write/ 'utf8'
                                                     -rescue- $.process.stderr.write(e.toString(), 'utf8')
                                                       -then- tangible.write_prompt()
                                                      -where [words = l.split(/\s+/) %[x.length] -seq],
