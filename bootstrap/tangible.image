@@ -1658,16 +1658,26 @@ caterwaul('js_all')(function () {
   -where [$                  = caterwaul,
           stream             = $.serialization({opaques: false}),
 
-          self_name()        = $.process.argv[1],
-          rewrite_self(data) = $.require('fs').writeFileSync(tangible.self_name(), data, 'utf8'),
-          serialize()        = '#!/usr/bin/env node\n#{$.replicator()}\ncaterwaul.tangible(#{$.serialization({opaques: false}).encode(tangible) /!JSON.stringify})',
+          tangible           = capture [self_name()        = $.process.argv[1],
+                                        rewrite_self(data) = $.require('fs').writeFileSync(tangible.self_name(), data, 'utf8'),
+                                        serialize()        = '#!/usr/bin/env node\n#{$.replicator()}\n' +
+                                                             'caterwaul.tangible(#{$.serialization({opaques: false}).encode(tangible) /!JSON.stringify})',
 
-          init_function()    = $.require('repl').start('tangible> ') -se [it.context.tangible = it.context.$ = tangible],
+                                        name()             = this.self_name().replace(/^.*\//, ''),
+                                        write_prompt()     = process.stdout.write('\n\033[1;32m#{this.name()}\033[0;0m '),
 
-          tangible           = capture [self_name    = self_name,
-                                        init         = init_function,
-                                        rewrite_self = rewrite_self,
-                                        serialize    = serialize]]})();
+                                        // Mostly for testing:
+                                        associate(k, v)    = tangible[k] = v,
+                                        cat(k)             = tangible[k],
+
+                                        process_line(l)    = tangible[words[0]].apply(tangible, words.slice(1)) /-process.stdout.write/ 'utf8'
+                                                    -rescue- $.process.stderr.write(e.toString(), 'utf8')
+                                                      -then- tangible.write_prompt()
+                                                     -where [words = l.split(/\s+/) %[x.length] -seq],
+
+                                        init()             = $.process.stdin -se [it.resume(), it.setEncoding('utf8'), it.on('data', tangible.process_line),
+                                                                                                                       it.on('end', "tangible.rewrite_self(tangible.serialize())".qf)]
+                                                                             -se- this.write_prompt()]]})();
 
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
