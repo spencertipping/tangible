@@ -11,7 +11,7 @@ This module contains nodes that make sense both for Tangible clients and Tangibl
 
     caterwaul.module('tangible.nodes', ':all', function ($) {
       tangible.nodes = wcapture [
-        basic_node(g, s, n = result) = node(s.call(n, v) /~flat_map/ "repeat(v, visited, node)".qf -given [node, v, visited]) /where [repeat = node_repeat()]
+        basic_node(g, s, n = result) = node(s.call(n, v) -then- repeat(node, v, visited) -given [node, v, visited]) /where [repeat = node_repeat()]
                             /-$.merge/ capture [val() = arguments.length ? this.apply(this, arguments) : g.call(this)],
 
         virtual(v = '') = basic_node("future()(v)".qf,     "future()(v = _)".qf),
