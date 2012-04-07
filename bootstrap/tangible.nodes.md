@@ -15,7 +15,6 @@ This module contains nodes that make sense both for Tangible clients and Tangibl
                             /-$.merge/ capture [val() = arguments.length ? this.apply(this, arguments) : g.call(this)],
 
         virtual(v = '')              = basic_node("future()(v)".qf,                    "future()(v = _)".qf),
-
         file(path)                   = basic_node("future() -se- fs.readFile (path,    'utf8', given[err, data] in it(data))".qf,
                                                   "future() -se- fs.writeFile(path, _, 'utf8', given.err        in it(_))".qf)],
 
