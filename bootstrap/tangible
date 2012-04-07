@@ -616,6 +616,7 @@ meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^
 meta::function('render', <<'__');
 file::write("$_.md", retrieve("markdown::js::$_")) for grep s/^sdoc::js:://, sort keys %data;
 file::write('../tangible', retrieve('pp::sdoc::image'));
+chmod 0700, '../tangible';
 
 __
 meta::function('rm', <<'__');
