@@ -1647,7 +1647,7 @@ meta::retriever('sdocp', <<'__');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __
-meta::sdoc('image', <<'__6');
+meta::sdoc('image', <<'__a');
 #!/usr/bin/perl
 # Tangible object | Copyright 2012 Spencer Tipping
 # Licensed under the terms of the MIT source code license
@@ -1680,7 +1680,6 @@ close $fh;
 __END__
 - attribute /kernel/prelude text sdoc::image.prelude
 - attribute /kernel/postlude text sdoc::image.postlude
-
 - attribute /fn/ls fn << end
   function () {process.stdout.write(this.state /keys -seq -re- it.sort().join('\n'))}
 - end
@@ -1692,9 +1691,9 @@ __END__
             save_lock()        = tangible.nodes.file(process.env.tangible).val(serialized_state()) /~push/ "delete tangible.lock".qf]}
 - end
 
-__6
+__a
 meta::sdoc('image.postlude', <<'__');
-print STDERR "exiting tangible object\n";
+
 
 __
 meta::sdoc('image.prelude', <<'__');
@@ -1714,7 +1713,7 @@ if ($_[0] =~ /-?-[h?](elp)?/) {
 }
 
 $ENV{tangible}      = $0;
-$ENV{tangible_args} = join("\n", @_);
+$ENV{tangible_args} = join("\n", @ARGV);
 
 __
 meta::sdoc('js::tangible', <<'__');
