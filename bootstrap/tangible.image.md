@@ -33,7 +33,7 @@ follows, indented by some amount. The data format itself is determined by the fi
 
       tangible.image /-$.merge/ capture [
         parse(s) = attributes *[[x, tangible.filter(xs[++xi]).decode(xs[++xi])]] /object -seq -where [data_segment = s.split(/\n__END__\n/m)[1],
-                                                                                                      attributes   = data_segment.split(/^(\S+) (\S+)\n$/m).slice(1)],
+                                                                                                      attributes   = data_segment.split(/\n(\S+) (\S+)\n/m).slice(1)],
 
 # Image serializer
 
@@ -46,7 +46,7 @@ This is a little more complex than the parser, as pieces of the serialized image
                                    data_header     = '__END__',
 
                                    encoders        = tangible.filters %v*[x.encode] /pairs -seq,
-                                   serialize(name) = encoders |[x[1](state[name]) -re- '#{name} #{x[0]}\n#{it}' /when.it] |seq,
+                                   serialize(name) = encoders |[x[1](state[name]) -re- '\n#{name} #{x[0]}\n#{it}' /when.it] |seq,
                                    data            = state /keys *serialize -seq -re- it.join('')]],
 
       using.caterwaul});
