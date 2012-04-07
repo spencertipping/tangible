@@ -13,6 +13,5 @@ This kernel is run by the server object, not clients. It contains the logic requ
       tangible.nodes /-$.merge/ capture [attribute(name) = tangible.nodes.basic_node("future()(tangible.state[name])".qf, "future()(tangible.state[name] = _)".qf)],
 
       tangible.invoke(name, args) = f.call(tangible, args) -where [f = tangible.state['/fn/#{name}'] || raise [new Error('/fn/#{name} does not exist')]],
-      tangible.invoke(process.env.tangible_args.replace(/\s.*/, '') /or['repl'], process.env.tangible_args),
-
+      tangible.invoke(args[0] -or- 'repl', args.slice(1)) -where [args = process.env.tangible_args.split(/\n/)],
       using.caterwaul});

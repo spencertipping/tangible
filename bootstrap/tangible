@@ -1714,7 +1714,7 @@ if ($_[0] =~ /-?-[h?](elp)?/) {
 }
 
 $ENV{tangible}      = $0;
-$ENV{tangible_args} = 'save';
+$ENV{tangible_args} = join("\n", @_);
 
 __
 meta::sdoc('js::tangible', <<'__');
@@ -1732,8 +1732,7 @@ caterwaul.module('tangible', ':all', function ($) {
   tangible.nodes /-$.merge/ capture [attribute(name) = tangible.nodes.basic_node("future()(tangible.state[name])".qf, "future()(tangible.state[name] = _)".qf)],
 
   tangible.invoke(name, args) = f.call(tangible, args) -where [f = tangible.state['/fn/#{name}'] || raise [new Error('/fn/#{name} does not exist')]],
-  tangible.invoke(process.env.tangible_args.replace(/\s.*/, '') /or['repl'], process.env.tangible_args),
-
+  tangible.invoke(args[0] -or- 'repl', args.slice(1)) -where [args = process.env.tangible_args.split(/\n/)],
   using.caterwaul});
 
 __
@@ -1778,7 +1777,7 @@ The image data follows a lone 'exit 0' command and contains a series of attribut
 follows, indented by some amount. The data format itself is determined by the filter used to serialize the data.
 
   tangible.image /-$.merge/ capture [
-    parse(s) = attributes *[[x, tangible.filter(xs[++xi]).decode(xs[++xi])]] /object -seq -where [data_segment = s.split(/\n__END__\n/m)[1],
+    parse(s) = attributes *[[x, tangible.filter(xs[++xi]).decode(xs[++xi])]] /object -seq -where [data_segment = s.split(/\n__END__$/m)[1],
                                                                                                   attributes   = data_segment.split(/\n(\S+) (\S+)\n/m).slice(1)],
 
 Image serializer.
@@ -1787,7 +1786,7 @@ This is a little more complex than the parser, as pieces of the serialized image
     serialize(state) = '#{prelude}\n#{node_invocation}\n#{postlude}\n#{data_header}\n#{data}'
                        -where [prelude         = state['/kernel/prelude'],
                                postlude        = state['/kernel/postlude'],
-                               node_invocation = 'open my $fh, "| node";\n$fh->print <<\'eof\';\n#{caterwaul.replicator()}\neof\nclose $fh;',
+                               node_invocation = 'open my $fh, "| node";\n$fh->print(<<\'eof\');\n#{caterwaul.replicator()}\neof\nclose $fh;',
                                data_header     = '__END__',
 
                                encoders        = tangible.filters %v*[x.encode] /pairs -seq,

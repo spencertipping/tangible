@@ -32,7 +32,7 @@ The image data follows a lone 'exit 0' command and contains a series of attribut
 follows, indented by some amount. The data format itself is determined by the filter used to serialize the data.
 
       tangible.image /-$.merge/ capture [
-        parse(s) = attributes *[[x, tangible.filter(xs[++xi]).decode(xs[++xi])]] /object -seq -where [data_segment = s.split(/\n__END__\n/m)[1],
+        parse(s) = attributes *[[x, tangible.filter(xs[++xi]).decode(xs[++xi])]] /object -seq -where [data_segment = s.split(/\n__END__$/m)[1],
                                                                                                       attributes   = data_segment.split(/\n(\S+) (\S+)\n/m).slice(1)],
 
 # Image serializer
@@ -42,7 +42,7 @@ This is a little more complex than the parser, as pieces of the serialized image
         serialize(state) = '#{prelude}\n#{node_invocation}\n#{postlude}\n#{data_header}\n#{data}'
                            -where [prelude         = state['/kernel/prelude'],
                                    postlude        = state['/kernel/postlude'],
-                                   node_invocation = 'open my $fh, "| node";\n$fh->print <<\'eof\';\n#{caterwaul.replicator()}\neof\nclose $fh;',
+                                   node_invocation = 'open my $fh, "| node";\n$fh->print(<<\'eof\');\n#{caterwaul.replicator()}\neof\nclose $fh;',
                                    data_header     = '__END__',
 
                                    encoders        = tangible.filters %v*[x.encode] /pairs -seq,
