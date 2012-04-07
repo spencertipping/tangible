@@ -6,7 +6,7 @@
 # Note: This is not a fully initialized Tangible object. You should run this
 # object once to give it a chance to rewrite itself.
 
-node <<99aeabc9ec7fe80b1b39f5e53dc7e49e
+node <<'99aeabc9ec7fe80b1b39f5e53dc7e49e'
 (function(f){return f(f)})(function(initializer,key,undefined){(function(f){return f(f)})(function(initializer){var calls_init=function(){var f=function(){return f.init.apply(f,arguments)
 };return f},original_global=typeof caterwaul==="undefined"?undefined:caterwaul,caterwaul_global=calls_init();caterwaul_global.deglobalize=function(){caterwaul=original_global;
 return caterwaul_global};caterwaul_global.core_initializer=initializer;caterwaul_global.context=this;caterwaul_global.merge=(function(o){for(var k in o){if(o.hasOwnProperty(k)){return true

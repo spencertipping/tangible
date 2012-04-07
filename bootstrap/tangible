@@ -1654,7 +1654,7 @@ meta::sdoc('image', <<'__');
 # Note: This is not a fully initialized Tangible object. You should run this
 # object once to give it a chance to rewrite itself.
 
-node <<99aeabc9ec7fe80b1b39f5e53dc7e49e
+node <<'99aeabc9ec7fe80b1b39f5e53dc7e49e'
 - include ../deps/caterwaul.min.js
 - include ../deps/caterwaul.std.min.js
 - include ../deps/future.js
