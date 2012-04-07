@@ -1660,7 +1660,7 @@ node <<99aeabc9ec7fe80b1b39f5e53dc7e49e
 - include ../deps/invariant.js
 
 - include js::tangible.core
-- include js::tangible.stream
+- include js::tangible.nodes
 - include js::tangible.image
 - include js::tangible
 99aeabc9ec7fe80b1b39f5e53dc7e49e
