@@ -616,9 +616,17 @@ else    {pop @{$transient{path}}}
 __
 meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^bootstrap::/, keys %data});');
 meta::function('render', <<'__');
+my ($options, @stuff) = separate_options(@_);
+
 file::write("$_.md", retrieve("markdown::js::$_")) for grep s/^sdoc::js:://, sort keys %data;
 file::write('../tangible', retrieve('pp::sdoc::image'));
 chmod 0700, '../tangible';
+
+unless ($$options{-R}) {
+  terminal::info('bootstrapping...'),    sh('../tangible');
+  terminal::info('normalizing save...'), sh('../tangible save');
+  terminal::info('normalizing save...'), sh('../tangible save');
+}
 
 __
 meta::function('rm', <<'__');
@@ -1647,7 +1655,7 @@ meta::retriever('sdocp', <<'__');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __
-meta::sdoc('image', <<'__a');
+meta::sdoc('image', <<'__5');
 #!/usr/bin/perl
 # Tangible object | Copyright 2012 Spencer Tipping
 # Licensed under the terms of the MIT source code license
@@ -1655,8 +1663,6 @@ meta::sdoc('image', <<'__a');
 
 # Note: This is not a fully initialized Tangible object. You should run this
 # object once to give it a chance to rewrite itself.
-
-print "initializing tangible object...\n";
 
 $ENV{tangible}      = $0;
 $ENV{tangible_args} = 'save';
@@ -1680,6 +1686,7 @@ close $fh;
 __END__
 - attribute /kernel/prelude text sdoc::image.prelude
 - attribute /kernel/postlude text sdoc::image.postlude
+- attribute /conf/default-action text id::repl
 - attribute /fn/ls fn << end
   function () {process.stdout.write(this.state /keys -seq -re- it.sort().join('\n'))}
 - end
@@ -1691,7 +1698,7 @@ __END__
             save_lock()        = tangible.nodes.file(process.env.tangible).val(serialized_state()) /~push/ "delete tangible.lock".qf]}
 - end
 
-__a
+__5
 meta::sdoc('image.postlude', <<'__');
 
 
@@ -1731,7 +1738,7 @@ caterwaul.module('tangible', ':all', function ($) {
   tangible.nodes /-$.merge/ capture [attribute(name) = tangible.nodes.basic_node("future()(tangible.state[name])".qf, "future()(tangible.state[name] = _)".qf)],
 
   tangible.invoke(name, args) = f.call(tangible, args) -where [f = tangible.state['/fn/#{name}'] || raise [new Error('/fn/#{name} does not exist')]],
-  tangible.invoke(args[0] -or- 'repl', args.slice(1)) -where [args = process.env.tangible_args.split(/\n/)],
+  tangible.invoke(args[0] -or- tangible.state['/conf/default-action'], args.slice(1)) -where [args = process.env.tangible_args.split(/\n/)],
   using.caterwaul});
 
 __
