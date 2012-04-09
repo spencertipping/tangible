@@ -306,7 +306,7 @@ meta::data('author', <<'__');
 Spencer Tipping <spencer@spencertipping.com>
 
 __
-meta::data('default-action', 'tangible-shell');
+meta::data('default-action', 'rescue');
 meta::data('license', <<'__');
 MIT License
 Copyright (c) 2010 Spencer Tipping
@@ -341,6 +341,20 @@ my ($name, @stuff) = @_;
 @_ ? @stuff ? around_hook('alias', @_, sub {associate("alias::$name", join(' ', @stuff), execute => 1)})
             : retrieve("alias::$name") // "Undefined alias $name"
    : table_display([select_keys('--namespace' => 'alias')], [map retrieve($_), select_keys('--namespace' => 'alias')]);
+
+__
+meta::function('boot', <<'__');
+# Boots this Tangible instance. The Tangible kernel decides whether it is
+# running in client or server mode.
+
+my @argv = @_;
+
+import_tangible_attributes();
+with_exported('tangible::/boot/kernel', sub {
+  $ENV{tangible} = $0;
+  $ENV{tangible_args} = join "\n", @argv;
+  enable();
+  exec "node '$_[0]'"});
 
 __
 meta::function('cat', 'join "\\n", retrieve(@_);');
@@ -537,6 +551,18 @@ else    {pop @{$transient{path}}}
 
 __
 meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^bootstrap::/, keys %data});');
+meta::function('rescue', <<'__');
+# Imports Tangible attributes into a virtual namespace, then runs the shell.
+# When the shell exits, exports the new set of tangible:: attributes into the
+# __DATA__ segment.
+
+import_tangible_attributes();
+ad('tangible::');
+shell();
+export_tangible_attributes();
+save();
+
+__
 meta::function('rm', <<'__');
 around_hook('rm', @_, sub {
   exists $data{$_} or terminal::warning("$_ does not exist") for @_;
@@ -639,18 +665,6 @@ my @keys = grep !is($_, '-v'), sort keys %data;
 my $hash = fast_hash(fast_hash(scalar @keys) . join '|', @keys);
 $hash = fast_hash("$data{$_}|$hash") for @keys;
 $hash;
-
-__
-meta::function('tangible-shell', <<'__');
-# Imports Tangible attributes into a virtual namespace, then runs the shell.
-# When the shell exits, exports the new set of tangible:: attributes into the
-# __DATA__ segment.
-
-import_tangible_attributes();
-ad('tangible::');
-shell();
-export_tangible_attributes();
-save();
 
 __
 meta::function('touch', 'associate($_, \'\') for @_;');
