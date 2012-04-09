@@ -1654,30 +1654,6 @@ meta::retriever('sdocp', <<'__');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __
-meta::sdoc('image.postlude', <<'__');
-
-
-__
-meta::sdoc('image.prelude', <<'__');
-#!/usr/bin/perl
-# Tangible object | Copyright 2012 Spencer Tipping
-# Licensed under the terms of the MIT source code license
-# http://github.com/spencertipping/tangible
-
-if ($ARGV[0] =~ /-?-[h?](elp)?/) {
-  print STDERR "Tangible object | Copyright 2012 Spencer Tipping\n",
-               "Licensed under the terms of the MIT source code license\n",
-               "http://github.com/spencertipping/tangible\n",
-               "Usage: $0 [command], where command is one of:\n",
-               "  repl          boots this Tangible object and enters a REPL\n",
-               "  ls            lists available attributes defined on this object\n";
-  exit 0;
-}
-
-$ENV{tangible}      = $0;
-$ENV{tangible_args} = join("\n", @ARGV);
-
-__
 meta::sdoc('js::kernel', <<'__');
 Tangible kernel compiler | Spencer Tipping
 Licensed under the terms of the MIT source code license
