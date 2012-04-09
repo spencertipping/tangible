@@ -9,9 +9,5 @@ does a better job of separating the essential 'kernel' logic from object-specifi
 This kernel is run by the server object, not clients. It contains the logic required to read and write the main image, something that is not generally done by clients of a Tangible object.
 
     caterwaul.module('tangible', ':all', function ($) {
-      tangible.state = tangible.image.parse(require('fs').readFileSync(process.env.tangible, 'utf8')),
-      tangible.nodes /-$.merge/ capture [attribute(name) = tangible.nodes.basic_node("future()(tangible.state[name])".qf, "future()(tangible.state[name] = _)".qf)],
-
-      tangible.invoke(name, args) = f.apply(tangible, args) -where [f = tangible.state['/fn/#{name}'] || raise [new Error('/fn/#{name} does not exist')]],
-      tangible.invoke(args[0] -or- tangible.state['/conf/default-action'], args.slice(1)) -where [args = process.env.tangible_args.split(/\n/)],
+      tangible.nodes.attribute(name) = tangible.nodes.basic_node("future()(tangible.state[name])".qf, "future()(tangible.state[name] = _)".qf),
       using.caterwaul});

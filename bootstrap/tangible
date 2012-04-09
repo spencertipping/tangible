@@ -239,6 +239,7 @@ meta::define_form 'template', sub {
 };
 __
 meta::alias('e', 'edit sdoc::image');
+meta::alias('ek', 'edit sdoc::js::kernel');
 meta::alias('epos', 'edit sdoc::image.postlude');
 meta::alias('epre', 'edit sdoc::image.prelude');
 meta::alias('erf', 'edit function::render');
@@ -619,15 +620,12 @@ meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^
 meta::function('render', <<'__');
 my ($options, @stuff) = separate_options(@_);
 
-file::write("$_.md", retrieve("markdown::js::$_")) for grep s/^sdoc::js:://, sort keys %data;
-file::write('../tangible', retrieve('pp::sdoc::image'));
-chmod 0700, '../tangible';
+terminal::info('rendering kernel compiler and documentation...');
+file::write("$_.md", retrieve("markdown::js::$_")) for grep s/^sdoc::js::tangible/tangible/, sort keys %data;
+file::write('kernel-compiler.js', retrieve('pp::js::kernel'));
 
-unless ($$options{-R}) {
-  terminal::info('bootstrapping...'),    sh('../tangible');
-  terminal::info('normalizing save...'), sh('../tangible save');
-  terminal::info('normalizing save...'), sh('../tangible save');
-}
+terminal::info('compiling kernel...');
+file::write('kernel.js', join '', qx|node kernel-compiler.js|);
 
 __
 meta::function('rm', <<'__');
@@ -1656,51 +1654,6 @@ meta::retriever('sdocp', <<'__');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __
-meta::sdoc('image', <<'__4');
-#!/usr/bin/perl
-# Tangible object | Copyright 2012 Spencer Tipping
-# Licensed under the terms of the MIT source code license
-# http://github.com/spencertipping/tangible
-
-# Note: This is not a fully initialized Tangible object. You should run this
-# object once to give it a chance to rewrite itself.
-
-$ENV{tangible}      = $0;
-$ENV{tangible_args} = 'save';
-
-my $source = <<'eof';
-- include ../deps/caterwaul.min.js
-- include ../deps/caterwaul.std.min.js
-- include ../deps/future.js
-- include ../deps/invariant.js
-
-- include js::tangible.core
-- include js::tangible.nodes
-- include js::tangible.image
-- include js::tangible.logical
-- include js::tangible
-eof
-
-open my $fh, '| node';
-$fh->print($source);
-close $fh;
-
-__END__
-- attribute /kernel/prelude sdoc::image.prelude
-- attribute /kernel/postlude sdoc::image.postlude
-- attribute /conf/default-action id::repl
-- attribute /fn/ls << end
-  function () {process.stdout.write(this.state /keys -seq -re- it.sort().join('\n'))}
-- end
-- attribute /fn/save << end
-  function () {
-    return this.lock -oeq- save_lock()
-    -where [tangible           = this,
-            serialized_state() = tangible.image.serialize(tangible.state),
-            save_lock()        = tangible.nodes.file(process.env.tangible).val(serialized_state()) /~push/ "delete tangible.lock".qf]}
-- end
-
-__4
 meta::sdoc('image.postlude', <<'__');
 
 
@@ -1725,6 +1678,27 @@ $ENV{tangible}      = $0;
 $ENV{tangible_args} = join("\n", @ARGV);
 
 __
+meta::sdoc('js::kernel', <<'__');
+Tangible kernel compiler | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+This file emits the Tangible kernel on stdout when run with node.js.
+
+- include ../deps/caterwaul.min.js
+- include ../deps/caterwaul.std.min.js
+- include ../deps/future.js
+- include ../deps/invariant.js
+
+- include js::tangible.core
+- include js::tangible.nodes
+- include js::tangible.image
+- include js::tangible.logical
+- include js::tangible
+
+// Serialize the kernel after precompiling all modules.
+process.stdout.write(caterwaul.replicator().toString());
+
+__
 meta::sdoc('js::tangible', <<'__');
 Tangible object kernel | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -1736,11 +1710,7 @@ does a better job of separating the essential 'kernel' logic from object-specifi
 This kernel is run by the server object, not clients. It contains the logic required to read and write the main image, something that is not generally done by clients of a Tangible object.
 
 caterwaul.module('tangible', ':all', function ($) {
-  tangible.state = tangible.image.parse(require('fs').readFileSync(process.env.tangible, 'utf8')),
-  tangible.nodes /-$.merge/ capture [attribute(name) = tangible.nodes.basic_node("future()(tangible.state[name])".qf, "future()(tangible.state[name] = _)".qf)],
-
-  tangible.invoke(name, args) = f.apply(tangible, args) -where [f = tangible.state['/fn/#{name}'] || raise [new Error('/fn/#{name} does not exist')]],
-  tangible.invoke(args[0] -or- tangible.state['/conf/default-action'], args.slice(1)) -where [args = process.env.tangible_args.split(/\n/)],
+  tangible.nodes.attribute(name) = tangible.nodes.basic_node("future()(tangible.state[name])".qf, "future()(tangible.state[name] = _)".qf),
   using.caterwaul});
 
 __
@@ -1758,36 +1728,16 @@ Tangible image library | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
 Introduction.
-This module contains functions that read and write Tangible images. An 'image' in this context is a runnable Tangible file consisting of three parts:
-
-| 1. Prelude. This is a Perl segment that handles argument parsing and --help invocation.
-  2. node.js kernel invocation. This includes a heredoc containing the Tangible kernel code.
-  3. Data. This is never executed by Perl; it begins with '__END__\n' and consists of object-specific data.
-
-The prelude is stored in the data; this allows you to customize what happens with it.
+This module contains functions that read and write Tangible images. An image is a self-modifying Perl file containing a $self section that contains Tangible-specific data. The Perl file acts
+as an administrative shell for the Tangible instance. It works by exec()ing the Tangible kernel, which then boots a server or starts a client REPL.
 
 caterwaul.module('tangible.image', ':all', function ($) {
+  tangible.parse_image(s)         = attributes *[[x, decode(xs[++xi])]] + [['/kernel/boot', pieces[0]]] -object -seq -where [pieces       = s.split(/\n__DATA__$/m),
+                                                                                                                             attributes   = pieces[1].split(/\n(\S+)\n/m).slice(1),
+                                                                                                                             decode(s)    = s.replace(/^  /mg, '')],
 
-Image parser.
-The image data follows a lone 'exit 0' command and contains a series of attributes. Each attribute is an unindented line consisting of an attribute name and a filter name. The attribute data
-follows, indented by some amount. The data format itself is determined by the filter used to serialize the data.
-
-  (tangible.image = {}) /-$.merge/ capture [
-    parse(s) = attributes *[[x, decode(xs[++xi])]] /object -seq -where [data_segment = s.split(/\n__END__$/m)[1],
-                                                                        attributes   = data_segment.split(/\n(\S+)\n/m).slice(1),
-                                                                        decode(s)    = s.replace(/^  /mg, '')],
-
-Image serializer.
-This is a little more complex than the parser, as pieces of the serialized image are generated from the data.
-
-    serialize(state) = '#{prelude}\n#{node_invocation}\n#{postlude}\n#{data_header}\n#{data}'
-                       -where [prelude         = state['/kernel/prelude'],
-                               postlude        = state['/kernel/postlude'],
-                               node_invocation = 'open my $fh, "| node";\n$fh->print(<<\'eof\');\n#{caterwaul.replicator()}\neof\nclose $fh;',
-                               data_header     = '__END__',
-
-                               serialize(name) = '#{name}\n#{state[name].replace(/^mg/, "  ")}',
-                               data            = state /keys *serialize -seq -re- it.join('\n')]],
+  tangible.serialize_image(state) = '#{state["/kernel/boot"]}\n__DATA__\n#{data}' -where [serialize(name) = '#{name}\n#{state[name].replace(/^mg/, "  ")}',
+                                                                                          data            = state /keys *serialize -seq -re- it.join('\n')],
   using.caterwaul});
 
 __
