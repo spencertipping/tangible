@@ -1017,10 +1017,10 @@ join "\n", map strip(sprintf($format, @$_)), @row_major;
 __
 meta::internal_function('tangible_parse', <<'__');
 # Creates a hash of Tangible attributes.
-my ($s) = @_;
-my @pieces = split /\n(\S+)\n/m, $s;
+my @pieces = split /\n(\S+)\n/m, "\n" . $_[0];
 shift @pieces;
-$pieces[$_ << 1 | 1] =~ s/^  //mg for 0 .. $#pieces;
+return () unless @pieces;
+$pieces[$_ << 1 | 1] =~ s/^  //mg for 0 .. $#pieces >> 1;
 @pieces;
 
 __
