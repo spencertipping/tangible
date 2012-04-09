@@ -12,28 +12,16 @@ This module contains functions that read and write Tangible images. An 'image' i
 The prelude is stored in the data; this allows you to customize what happens with it.
 
     caterwaul.module('tangible.image', ':all', function ($) {
-      tangible /-$.merge/ wcapture [
-        image = {},
-
-# Filters
-
-A filter is a function that serializes or deserializes an attribute value. Each filter is tried in succession until one returns a truthy serialization result. You need to replace the kernel in
-order to add new filters. (This differs significantly from self-modifying Perl.)
-
-        filters = {text: capture [encode(s) = s.replace(/^/mg, '  ')            -when [s.constructor === String],                            decode(s) = s.replace(/^  /mg, '')],
-                   json: capture [encode(o) = '  ' + JSON.stringify(o)          -when [o.constructor === Array || o.constructor === Object], decode(s) = JSON.parse(s)],
-                   fn:   capture [encode(f) = filters.text.encode(f.toString()) -when [f.constructor === Function],                          decode(s) = $(':all')(s)]},
-
-        filter(name) = filters[name] || raise [new Error('undefined filter "#{name}"')]],
 
 # Image parser
 
 The image data follows a lone 'exit 0' command and contains a series of attributes. Each attribute is an unindented line consisting of an attribute name and a filter name. The attribute data
 follows, indented by some amount. The data format itself is determined by the filter used to serialize the data.
 
-      tangible.image /-$.merge/ capture [
-        parse(s) = attributes *[[x, tangible.filter(xs[++xi]).decode(xs[++xi])]] /object -seq -where [data_segment = s.split(/\n__END__$/m)[1],
-                                                                                                      attributes   = data_segment.split(/\n(\S+) (\S+)\n/m).slice(1)],
+      (tangible.image = {}) /-$.merge/ capture [
+        parse(s) = attributes *[[x, decode(xs[++xi])]] /object -seq -where [data_segment = s.split(/\n__END__$/m)[1],
+                                                                            attributes   = data_segment.split(/\n(\S+)\n/m).slice(1),
+                                                                            decode(s)    = s.replace(/^  /mg, '')],
 
 # Image serializer
 
@@ -45,8 +33,6 @@ This is a little more complex than the parser, as pieces of the serialized image
                                    node_invocation = 'open my $fh, "| node";\n$fh->print(<<\'eof\');\n#{caterwaul.replicator()}\neof\nclose $fh;',
                                    data_header     = '__END__',
 
-                                   encoders        = tangible.filters %v*[x.encode] /pairs -seq,
-                                   serialize(name) = encoders |[x[1](state[name]) -re- '\n#{name} #{x[0]}\n#{it}' /when.it] |seq,
-                                   data            = state /keys *serialize -seq -re- it.join('')]],
-
+                                   serialize(name) = '#{name}\n#{state[name].replace(/^mg/, "  ")}',
+                                   data            = state /keys *serialize -seq -re- it.join('\n')]],
       using.caterwaul});

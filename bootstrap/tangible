@@ -245,6 +245,7 @@ meta::alias('erf', 'edit function::render');
 meta::alias('et', 'edit sdoc::js::tangible');
 meta::alias('etc', 'edit sdoc::js::tangible.core');
 meta::alias('eti', 'edit sdoc::js::tangible.image');
+meta::alias('etl', 'edit sdoc::js::tangible.logical');
 meta::alias('etn', 'edit sdoc::js::tangible.nodes');
 meta::bootstrap('html', <<'__');
 <html>
@@ -1655,7 +1656,7 @@ meta::retriever('sdocp', <<'__');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __
-meta::sdoc('image', <<'__5');
+meta::sdoc('image', <<'__4');
 #!/usr/bin/perl
 # Tangible object | Copyright 2012 Spencer Tipping
 # Licensed under the terms of the MIT source code license
@@ -1676,6 +1677,7 @@ my $source = <<'eof';
 - include js::tangible.core
 - include js::tangible.nodes
 - include js::tangible.image
+- include js::tangible.logical
 - include js::tangible
 eof
 
@@ -1684,13 +1686,13 @@ $fh->print($source);
 close $fh;
 
 __END__
-- attribute /kernel/prelude text sdoc::image.prelude
-- attribute /kernel/postlude text sdoc::image.postlude
-- attribute /conf/default-action text id::repl
-- attribute /fn/ls fn << end
+- attribute /kernel/prelude sdoc::image.prelude
+- attribute /kernel/postlude sdoc::image.postlude
+- attribute /conf/default-action id::repl
+- attribute /fn/ls << end
   function () {process.stdout.write(this.state /keys -seq -re- it.sort().join('\n'))}
 - end
-- attribute /fn/save fn << end
+- attribute /fn/save << end
   function () {
     return this.lock -oeq- save_lock()
     -where [tangible           = this,
@@ -1698,7 +1700,7 @@ __END__
             save_lock()        = tangible.nodes.file(process.env.tangible).val(serialized_state()) /~push/ "delete tangible.lock".qf]}
 - end
 
-__5
+__4
 meta::sdoc('image.postlude', <<'__');
 
 
@@ -1737,7 +1739,7 @@ caterwaul.module('tangible', ':all', function ($) {
   tangible.state = tangible.image.parse(require('fs').readFileSync(process.env.tangible, 'utf8')),
   tangible.nodes /-$.merge/ capture [attribute(name) = tangible.nodes.basic_node("future()(tangible.state[name])".qf, "future()(tangible.state[name] = _)".qf)],
 
-  tangible.invoke(name, args) = f.call(tangible, args) -where [f = tangible.state['/fn/#{name}'] || raise [new Error('/fn/#{name} does not exist')]],
+  tangible.invoke(name, args) = f.apply(tangible, args) -where [f = tangible.state['/fn/#{name}'] || raise [new Error('/fn/#{name} does not exist')]],
   tangible.invoke(args[0] -or- tangible.state['/conf/default-action'], args.slice(1)) -where [args = process.env.tangible_args.split(/\n/)],
   using.caterwaul});
 
@@ -1765,26 +1767,15 @@ This module contains functions that read and write Tangible images. An 'image' i
 The prelude is stored in the data; this allows you to customize what happens with it.
 
 caterwaul.module('tangible.image', ':all', function ($) {
-  tangible /-$.merge/ wcapture [
-    image = {},
-
-Filters.
-A filter is a function that serializes or deserializes an attribute value. Each filter is tried in succession until one returns a truthy serialization result. You need to replace the kernel in
-order to add new filters. (This differs significantly from self-modifying Perl.)
-
-    filters = {text: capture [encode(s) = s.replace(/^/mg, '  ')            -when [s.constructor === String],                            decode(s) = s.replace(/^  /mg, '')],
-               json: capture [encode(o) = '  ' + JSON.stringify(o)          -when [o.constructor === Array || o.constructor === Object], decode(s) = JSON.parse(s)],
-               fn:   capture [encode(f) = filters.text.encode(f.toString()) -when [f.constructor === Function],                          decode(s) = $(':all')(s)]},
-
-    filter(name) = filters[name] || raise [new Error('undefined filter "#{name}"')]],
 
 Image parser.
 The image data follows a lone 'exit 0' command and contains a series of attributes. Each attribute is an unindented line consisting of an attribute name and a filter name. The attribute data
 follows, indented by some amount. The data format itself is determined by the filter used to serialize the data.
 
-  tangible.image /-$.merge/ capture [
-    parse(s) = attributes *[[x, tangible.filter(xs[++xi]).decode(xs[++xi])]] /object -seq -where [data_segment = s.split(/\n__END__$/m)[1],
-                                                                                                  attributes   = data_segment.split(/\n(\S+) (\S+)\n/m).slice(1)],
+  (tangible.image = {}) /-$.merge/ capture [
+    parse(s) = attributes *[[x, decode(xs[++xi])]] /object -seq -where [data_segment = s.split(/\n__END__$/m)[1],
+                                                                        attributes   = data_segment.split(/\n(\S+)\n/m).slice(1),
+                                                                        decode(s)    = s.replace(/^  /mg, '')],
 
 Image serializer.
 This is a little more complex than the parser, as pieces of the serialized image are generated from the data.
@@ -1795,9 +1786,45 @@ This is a little more complex than the parser, as pieces of the serialized image
                                node_invocation = 'open my $fh, "| node";\n$fh->print(<<\'eof\');\n#{caterwaul.replicator()}\neof\nclose $fh;',
                                data_header     = '__END__',
 
-                               encoders        = tangible.filters %v*[x.encode] /pairs -seq,
-                               serialize(name) = encoders |[x[1](state[name]) -re- '\n#{name} #{x[0]}\n#{it}' /when.it] |seq,
-                               data            = state /keys *serialize -seq -re- it.join('')]],
+                               serialize(name) = '#{name}\n#{state[name].replace(/^mg/, "  ")}',
+                               data            = state /keys *serialize -seq -re- it.join('\n')]],
+  using.caterwaul});
+
+__
+meta::sdoc('js::tangible.logical', <<'__');
+Tangible logical attribute promotion | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+Tangible maintains an in-memory filesystem where each attribute is stored as text. This module provides logical bindings for those attributes. For example, attributes stored in /fn should be
+compiled as functions. In order to do this, attributes are accessed through an abstraction that invokes hooks automatically. Like self-modifying Perl, the text versions are still
+authoritative; artifacts of those attributes are not stored or otherwise readable through the filesystem API.
+
+caterwaul.module('tangible.logical', ':all', function ($) {
+
+Namespaces.
+Namespaces are stored in /conf/namespaces. This file contains a map of root-directory to handler, where the handler refers to the name of a function file that should be compiled. This handler
+is then invoked on each file interned into that root directory. For example, in order to support /fn, /conf/namespaces contains an entry like this:
+
+| fn /kernel/compile
+
+The contents of /kernel/compile look like this:
+
+| function (name, value) {
+    return tangible.compiler -oeq- $(':all') <then>
+           tangible.fn       -oeq- {}        <then>
+           tangible.fn[name.replace(/.*\//, '')] = tangible.compiler(value)}
+
+Because this is written in caterwaul, a compiler must exist to compile /kernel/compile. This is done magically by the kernel up-front.
+
+  tangible.namespaces = {},
+  tangible.compiler   = $(':all'),
+  tangible.fn         = capture [compile(name, value) = tangible.fn[name.replace(/.*\//, '')] = tangible.compiler(value)],
+
+Association and retrieval.
+Like self-modifying Perl, Tangible abstracts the association and retrieval API. Unlike self-modifying Perl, this is done by modifying the mount table instead of by using ad-hoc patterns
+against attribute names. Also unlike self-modifying Perl, retrieval and association use futures. Retrievers always return futures of their values, and associators return futures that are
+delivered once the object is saved with its new state. The Tangible kernel rate-limits save requests to prevent disk hogging.
 
   using.caterwaul});
 
