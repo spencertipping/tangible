@@ -1,16 +1,9 @@
 #!/usr/bin/perl
 # 99aeabc9ec7fe80b1b39f5e53dc7e49e      <- self-modifying Perl magic
 
-# This is a self-modifying Perl file. I'm sorry you're viewing the source (it's
-# really gnarly). If you're curious what it's made of, I recommend reading
-# http://github.com/spencertipping/writing-self-modifying-perl.
-#
-# If you got one of these from someone and don't know what to do with it, send
-# it to spencer@spencertipping.com and I'll see if I can figure out what it
-# does.
-
-# For the benefit of HTML viewers (this is hack):
-# <div id='cover' style='position: absolute; left: 0; top: 0; width: 10000px; height: 10000px; background: white'></div>
+# Tangible object | Copyright 2012 Spencer Tipping
+# Licensed under the terms of the MIT source code license
+# http://github.com/spencertipping/tangible
 
 $|++;
 
@@ -236,16 +229,9 @@ meta::bootstrap('initialization', <<'__');
 #!/usr/bin/perl
 # 99aeabc9ec7fe80b1b39f5e53dc7e49e      <- self-modifying Perl magic
 
-# This is a self-modifying Perl file. I'm sorry you're viewing the source (it's
-# really gnarly). If you're curious what it's made of, I recommend reading
-# http://github.com/spencertipping/writing-self-modifying-perl.
-#
-# If you got one of these from someone and don't know what to do with it, send
-# it to spencer@spencertipping.com and I'll see if I can figure out what it
-# does.
-
-# For the benefit of HTML viewers (this is hack):
-# <div id='cover' style='position: absolute; left: 0; top: 0; width: 10000px; height: 10000px; background: white'></div>
+# Tangible object | Copyright 2012 Spencer Tipping
+# Licensed under the terms of the MIT source code license
+# http://github.com/spencertipping/tangible
 
 $|++;
 
@@ -624,7 +610,7 @@ chmod 0700, $finalname;
 hook('snapshot', $finalname);
 __
 meta::function('state', <<'__');
-my @keys = grep !is('-v', $_), sort keys %data;
+my @keys = grep !is($_, '-v'), sort keys %data;
 my $hash = fast_hash(fast_hash(scalar @keys) . join '|', @keys);
 $hash = fast_hash("$data{$_}|$hash") for @keys;
 $hash;
@@ -639,12 +625,19 @@ terminal::info('parsing tangible state...');
 my %tangible_attributes = tangible_parse($global_data);
 associate("tangible::$_", $tangible_attributes{$_}) for keys %tangible_attributes;
 
+associate('indicator::tangible', <<'eof', execute => 1);
+"\033[1;30m t::\033[0;0m"
+eof
+ad('tangible::');
 shell();
+rm('indicator::tangible');
 
 terminal::info('serializing tangible state...');
 my %new_attributes;
 $new_attributes{$_} = retrieve("tangible::$_") for grep s/^tangible:://, sort keys %data;
 $global_data = tangible_serialize(%new_attributes);
+
+save();
 
 __
 meta::function('touch', 'associate($_, \'\') for @_;');
@@ -1112,10 +1105,11 @@ my $process = ::name();
 sub message {print STDERR "[$_[0]] $_[1]\n"}
 sub color {
   my ($name, $color) = @_;
-  *{"terminal::$name"} = sub {chomp($_), print STDERR "\033[1;30m$process(\033[1;${color}m$name\033[1;30m)\033[0;0m $_\n" for map join('', $_), @_}}
+  *{"terminal::$name"} = sub {chomp($_), print STDERR "\033[1;30m[\033[1;${color}m$name\033[1;30m]\033[0;0m $_\n" for map join('', $_), @_}}
 
 my %preloaded = (info => 32, progress => 32, state => 34, debug => 34, warning => 33, error => 31);
 color $_, $preloaded{$_} for keys %preloaded;
+
 __
 meta::message_color('cc', '36');
 meta::message_color('state', 'purple');
@@ -1168,7 +1162,7 @@ function::shb                           7b2685a4041c25bc495816e472bdace5
 function::shell                         a87f389b94713e5855e62241d649d01d
 function::size                          69f6ab4a100c6ef05d4d41510004d645
 function::snapshot                      56939a47f2758421669641e15ebd66eb
-function::state                         e3e7d323a6fddb1c167fe389f5eee5ea
+function::state                         f7490e937bec0d67edde576f6d86d8e9
 function::touch                         3991b1b7c7187566f50e5e58ce01fa06
 function::unlock                        b4aac02f7f3fb700acf4acfd9b180ceb
 function::update                        ac391dc90e507e7586c81850e7c2ecdd
