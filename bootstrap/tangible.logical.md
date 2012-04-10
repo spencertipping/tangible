@@ -37,4 +37,5 @@ its new state. The Tangible kernel rate-limits save requests to prevent disk hog
       where [attribute_nodes                 = null,        // Must initialize this before doing anything with the attribute table
              attribute_node_for(name, value) = tangible.nodes.virtual() -se- it.val(value) /when.value
                                                                         -se- it / linear_edge /~to/ tangible.save_trigger],
-      using.caterwaul});
+      using.caterwaul,
+      using[caterwaul.invariant]});
