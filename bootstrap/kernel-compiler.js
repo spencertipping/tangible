@@ -411,6 +411,7 @@ caterwaul.module('tangible.logical', ':all', function ($) {
 // against attribute names. Also unlike self-modifying Perl, association is asynchronous. Requests to associate an attribute return futures that are delivered once the object has been saved in
 // its new state. The Tangible kernel rate-limits save requests to prevent disk hogging.
 
+  tangible.keys()          = attribute_nodes /keys -seq,
   tangible.attribute(name) = attribute_nodes[name] -oeq- attribute_node_for(name) /-$.merge/ capture [rm() = delete attribute_nodes[name]],
 
   tangible.state(s)        = s ? attribute_nodes -eq- {} -then- s /pairs *![attribute_nodes[x[0]] = attribute_node_for(x[0], x[1])] /seq
