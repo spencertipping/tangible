@@ -8,8 +8,12 @@ does a better job of separating the essential 'kernel' logic from object-specifi
 
 This kernel is run by the server object, not clients. It contains the logic required to read and write the main image, something that is not generally done by clients of a Tangible object.
 
+Upon booting, the kernel compiles and runs /boot/init, which should contain a caterwaul function that refers to a global called 'tangible'.
+
     caterwaul.module('tangible', ':all', function ($) {
-      tangible.nodes.attribute(name) = tangible.nodes.basic_node("future()(tangible.state[name])".qf, "future()(tangible.state[name] = _)".qf),
-      tangible.init() = require('fs').unlink(process.env.tangible_rm) -when- process.env.tangible_rm -then-
-                        console.log('name: #{process.env.tangible}; args: #{process.env.tangible_args}'),
-      using.caterwaul});
+      tangible.init() = require('fs').unlink(process.env.tangible_rm) -when- process.env.tangible_rm
+                 -then- state(require('fs').readFileSync(process.env.tangible) /!parse_image)
+                 -then- compiler(tangible('/boot/init').val(), {tangible: tangible}).apply(tangible, process.env.tangible_args.split(/\n/)),
+
+      using.caterwaul,
+      using[caterwaul.tangible]});

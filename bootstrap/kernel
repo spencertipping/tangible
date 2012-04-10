@@ -238,7 +238,6 @@ meta::define_form 'template', sub {
   meta::externalize "template::$name", "template::$name", meta::eval_in("sub {\n$value\n}", "template::$name");
 };
 __
-meta::alias('e', 'edit sdoc::image');
 meta::alias('ek', 'edit sdoc::js::kernel');
 meta::alias('epos', 'edit sdoc::image.postlude');
 meta::alias('epre', 'edit sdoc::image.prelude');
@@ -1665,6 +1664,8 @@ This file emits the Tangible kernel on stdout when run with node.js.
 - include ../deps/future.js
 - include ../deps/invariant.js
 
+caterwaul.module('require', function ($) {$.require = require});
+
 - include js::tangible.core
 - include js::tangible.nodes
 - include js::tangible.image
@@ -1685,20 +1686,23 @@ does a better job of separating the essential 'kernel' logic from object-specifi
 
 This kernel is run by the server object, not clients. It contains the logic required to read and write the main image, something that is not generally done by clients of a Tangible object.
 
+Upon booting, the kernel compiles and runs /boot/init, which should contain a caterwaul function that refers to a global called 'tangible'.
+
 caterwaul.module('tangible', ':all', function ($) {
-  tangible.nodes.attribute(name) = tangible.nodes.basic_node("future()(tangible.state[name])".qf, "future()(tangible.state[name] = _)".qf),
-  tangible.init() = require('fs').unlink(process.env.tangible_rm) -when- process.env.tangible_rm -then-
-                    console.log('name: #{process.env.tangible}; args: #{process.env.tangible_args}'),
-  using.caterwaul});
+  tangible.init() = require('fs').unlink(process.env.tangible_rm) -when- process.env.tangible_rm
+             -then- state(require('fs').readFileSync(process.env.tangible) /!parse_image)
+             -then- compiler(tangible('/boot/init').val(), {tangible: tangible}).apply(tangible, process.env.tangible_args.split(/\n/)),
+
+  using.caterwaul,
+  using[caterwaul.tangible]});
 
 __
 meta::sdoc('js::tangible.core', <<'__');
 Tangible core object definition | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
-caterwaul.module('tangible.core', function ($) {
-  $.require  = require,
-  $.tangible = {}});
+caterwaul.module('tangible.core', ':all', function ($) {
+  $.tangible() = $.tangible.attribute.apply($.tangible, arguments)});
 
 __
 meta::sdoc('js::tangible.image', <<'__');
@@ -1710,11 +1714,11 @@ This module contains functions that read and write Tangible images. An image is 
 as an administrative shell for the Tangible instance. It works by exec()ing the Tangible kernel, which then boots a server or starts a client REPL.
 
 caterwaul.module('tangible.image', ':all', function ($) {
-  tangible.parse_image(s)         = attributes *[[x, decode(xs[++xi])]] + [['/kernel/boot', pieces[0]]] -object -seq -where [pieces       = s.split(/\n__DATA__$/m),
-                                                                                                                             attributes   = pieces[1].split(/\n(\S+)\n/m).slice(1),
-                                                                                                                             decode(s)    = s.replace(/^  /mg, '')],
+  tangible.parse_image(s)         = attributes *[[x, decode(xs[++xi])]] + [['/boot/kernel', pieces[0]]] -object -seq -where [pieces     = s.split(/\n__DATA__$/m),
+                                                                                                                             attributes = pieces[1].split(/\n(\S+)\n/m).slice(1),
+                                                                                                                             decode(s)  = s.replace(/^  /mg, '')],
 
-  tangible.serialize_image(state) = '#{state["/kernel/boot"]}\n__DATA__\n#{data}' -where [serialize(name) = '#{name}\n#{state[name].replace(/^mg/, "  ")}',
+  tangible.serialize_image(state) = '#{state["/boot/kernel"]}\n__DATA__\n#{data}' -where [serialize(name) = '#{name}\n#{state[name].replace(/^mg/, "  ")}',
                                                                                           data            = state /keys *serialize -seq -re- it.join('\n')],
   using.caterwaul});
 
@@ -1734,16 +1738,9 @@ Namespaces.
 Namespaces are stored in /conf/namespaces. This file contains a map of root-directory to handler, where the handler refers to the name of a function file that should be compiled. This handler
 is then invoked on each file interned into that root directory. For example, in order to support /fn, /conf/namespaces contains an entry like this:
 
-| fn /kernel/compile
+| fn compile
 
-The contents of /kernel/compile look like this:
-
-| function (name, value) {
-    return tangible.compiler -oeq- $(':all') <then>
-           tangible.fn       -oeq- {}        <then>
-           tangible.fn[name.replace(/.*\//, '')] = tangible.compiler(value)}
-
-Because this is written in caterwaul, a compiler must exist to compile /kernel/compile. This is done magically by the kernel up-front.
+This instructs Tangible to invoke the 'compile' function on each name/value pair that is interned into /fn.
 
   tangible.namespaces = {},
   tangible.compiler   = $(':all'),
@@ -1751,9 +1748,17 @@ Because this is written in caterwaul, a compiler must exist to compile /kernel/c
 
 Association and retrieval.
 Like self-modifying Perl, Tangible abstracts the association and retrieval API. Unlike self-modifying Perl, this is done by modifying the mount table instead of by using ad-hoc patterns
-against attribute names. Also unlike self-modifying Perl, retrieval and association use futures. Retrievers always return futures of their values, and associators return futures that are
-delivered once the object is saved with its new state. The Tangible kernel rate-limits save requests to prevent disk hogging.
+against attribute names. Also unlike self-modifying Perl, association is asynchronous. Requests to associate an attribute return futures that are delivered once the object has been saved in
+its new state. The Tangible kernel rate-limits save requests to prevent disk hogging.
 
+  tangible.attribute(name) = attribute_nodes[name] -oeq- attribute_node_for(name) /-$.merge/ capture [rm() = delete attribute_nodes[name]],
+
+  tangible.state(s)        = s ? attribute_nodes -eq- {} -then- s /pairs *![attribute_nodes[x[0]] = attribute_node_for(x[0], x[1])] /seq
+                               : attribute_nodes %v*[x.val()] -seq,
+
+  where [attribute_nodes                 = null,        // Must initialize this before doing anything with the attribute table
+         attribute_node_for(name, value) = tangible.nodes.virtual() -se- it.val(value) /when.value
+                                                                    -se- it / linear_edge /~to/ tangible.save_trigger],
   using.caterwaul});
 
 __
@@ -1763,23 +1768,47 @@ Licensed under the terms of the MIT source code license
 
 Introduction.
 Tangible values are manpulated through the caterwaul invariant library. This allows you to define edges that transparently propagate updates from one node to another. Tangible provides several
-built-in nodes and edges that you can use. All nodes defined here use a getter/setter called 'val()', just like jQuery. All getters return futures (!), not straight values. The reason is that
-some getters are for resources such as files, which cross an IO barrier.
+built-in nodes and edges that you can use. All nodes defined here use a getter/setter called 'val()', just like jQuery. Nodes will return either a straight value or a future of a value. No
+canonical node value will ever be a future, so you can just check the type of the result. (Though ideally you know up front which type the node will return.)
 
 This module contains nodes that make sense both for Tangible clients and Tangible servers.
 
 caterwaul.module('tangible.nodes', ':all', function ($) {
-  tangible.nodes = wcapture [
-    basic_node(g, s, n = result) = node(s.call(n, v) -then- repeat(node, v, visited) -given [node, v, visited]) /where [repeat = node_repeat()]
-                        /-$.merge/ capture [val() = arguments.length ? this.apply(this, arguments) : g.call(this)],
+  tangible.nodes = wcapture [basic_node(g, s, n = result)  = node(s.call(n, v) -then- repeat(node, v, visited) -given [node, v, visited]) /where [repeat = node_repeat()]
+                                                  /-$.merge/ capture [val() = arguments.length ? this.apply(this, arguments) : g.call(this)],
 
-    virtual(v = '') = basic_node("future()(v)".qf,     "future()(v = _)".qf),
-    file(path)      = basic_node("read_file(path)".qf, "write_file(path, _)".qf)],
+Read/write nodes.
+These have a logical state that can be modified by using the val() setter. In most cases, e.g. files, state changes correspond to external side-effects.
 
-  where [fs                         = require('fs') -when [typeof require === 'function'],
-         read_file(name)            = future() -se- fs.readFile(name, 'utf8', given[err, data] in it(data)),
-         write_file(name, contents) = future() -se- fs.writeFile(name, contents, 'utf8', given.err in it(contents))],
+                             virtual(v = '')               = "future()(v)".qf     /-basic_node/ "future()(v = _)".qf,
+                             file(path)                    = "read_file(path)".qf /-basic_node/ "write_file(path, _)".qf,
 
+Read-only nodes.
+These have no-op writers, and these nodes propagate their state when read. This is useful for situations where a node is connected as an observer to an external data source. For example,
+consider the case where you're watching the value of something over HTTP. You want to propagate the changes through the node network each time you observe a new value.
+
+                             read_only_node(g, n = result) = propagating_getter /-basic_node/ "future()(null)".qf -where [propagating_getter() = g.call(this) /~push/ "n.val(_)".qf],
+
+                             tangible_image(path, name)    = read_file(path) /~map/ "tangible.parse_image(_)[name]".qf /given.nothing /!read_only_node,
+                             http(url)                     = read_http(host, port, path)                               /given.nothing /!read_only_node
+                                                             -where [pieces = /(?:http:)?(?:\/\/)?([^\/:]+)(:\d+)?(\/.*)/.exec(url),
+                                                                     host   = pieces[1],
+                                                                     port   = pieces[2] ? +pieces[2].substr(1) : 80,
+                                                                     path   = pieces[3]]],
+
+Drivers.
+These will work iff we're running under node.js. They won't work for web-based clients, which will need a different set of nodes.
+
+  where [fs                          = require('fs')   -when [typeof require === 'function'],
+         http                        = require('http') -when [typeof require === 'function'],
+
+         read_file(name)             = future() -se- fs.readFile(name, 'utf8', given[err, data] in it(data)),
+         write_file(name, contents)  = future() -se- fs.writeFile(name, contents, 'utf8', given.err in it(contents)),
+
+         read_http(host, port, path) = future() -se- http.get({host: host, port: port, path: path}, "it(_)".qf)
+                           |~flat_map| response.on('data', "chunks /~push/ _".qf) -then- response.on('end', "result(chunks /~join/ '')".qf) -then- result
+                                       -where [chunks = [], result = future()]
+                                       -given.response],
   using.caterwaul,
   using[caterwaul.invariant]});
 
