@@ -16,11 +16,16 @@ is then invoked on each file interned into that root directory. For example, in 
 
     fn compile
 
-This instructs Tangible to invoke the 'compile' function on each name/value pair that is interned into /fn.
+This instructs Tangible to invoke the 'compile' function on each name/value pair that is interned into /fn. Processing of /conf/namespaces is handled by /boot/init, not by the kernel itself.
 
-      tangible.namespaces = {},
-      tangible.compiler   = $(':all'),
-      tangible.fn         = capture [compile(name, value) = tangible.fn[name.replace(/.*\//, '')] = tangible.compiler(value)],
+      tangible.namespaces                   = {},
+      tangible.namespace(ns, function_name) = tangible.namespaces[ns] -eq- f -then- attribute_nodes %k%[x.substr(1, ns.length) === ns] /pairs *![x[0] /-f/ x[1]] /seq
+                                              -where [f = function_name.constructor === Function ? function_name : tangible.fn[function_name]],
+
+      tangible.compiler                     = $(':all'),
+      tangible.intern(name)(value)          = tangible.namespaces[name /!namespace_for](name, value),
+      tangible.fn                           = capture [compile(name, value) = tangible.fn[name.replace(/.*\//, '')] = tangible.compiler(value),
+                                                       save()               = self_lock = self_lock /~flat_map/ "tangible.self /~val/ tangible.serialize_image(tangible.state())".qf],
 
 # Association and retrieval
 
@@ -35,7 +40,9 @@ its new state. The Tangible kernel rate-limits save requests to prevent disk hog
                                    : attribute_nodes %v*[x.val()] -seq,
 
       where [attribute_nodes                 = null,        // Must initialize this before doing anything with the attribute table
-             attribute_node_for(name, value) = tangible.nodes.virtual() -se- it.val(value) /when.value
-                                                                        -se- it / linear_edge /~to/ tangible.save_trigger],
-      using.caterwaul,
-      using[caterwaul.invariant]});
+             attribute_node_for(name, value) = tangible.nodes.virtual() <se> it.val(value) -when.value -then- it.signal() /~push/ tangible.fn.save
+                                                                                                       -then- it.signal() /~push/ tangible.intern(name),
+             namespace_for(name)             = /\/([^\/]+)/.exec(name) -re- it[1],
+             self_lock                       = future()(null)],
+
+      using.caterwaul});

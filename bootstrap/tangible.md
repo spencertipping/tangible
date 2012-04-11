@@ -12,6 +12,7 @@ Upon booting, the kernel compiles and runs /boot/init, which should contain a ca
 
     caterwaul.module('tangible', ':all', function ($) {
       tangible.init() = require('fs').unlink(process.env.tangible_rm) -when- process.env.tangible_rm
+                 -then- tangible.self /eq [tangible.nodes /~file/ process.env.tangible]
                  -then- state(require('fs').readFileSync(process.env.tangible, 'utf8') /!parse_image)
                  -then- compiler(tangible('/boot/init').val(), {tangible: tangible}).apply(tangible, process.env.tangible_args.split(/\n/)),
 

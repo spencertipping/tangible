@@ -1690,6 +1690,7 @@ Upon booting, the kernel compiles and runs /boot/init, which should contain a ca
 
 caterwaul.module('tangible', ':all', function ($) {
   tangible.init() = require('fs').unlink(process.env.tangible_rm) -when- process.env.tangible_rm
+             -then- tangible.self /eq [tangible.nodes /~file/ process.env.tangible]
              -then- state(require('fs').readFileSync(process.env.tangible, 'utf8') /!parse_image)
              -then- compiler(tangible('/boot/init').val(), {tangible: tangible}).apply(tangible, process.env.tangible_args.split(/\n/)),
 
@@ -1714,11 +1715,11 @@ This module contains functions that read and write Tangible images. An image is 
 as an administrative shell for the Tangible instance. It works by exec()ing the Tangible kernel, which then boots a server or starts a client REPL.
 
 caterwaul.module('tangible.image', ':all', function ($) {
-  tangible.parse_image(s)         = attributes *[[x, decode(xs[++xi])]] + [['/boot/kernel', pieces[0]]] -object -seq -where [pieces     = s.split(/\n__DATA__$/m),
+  tangible.parse_image(s)         = attributes *[[x, decode(xs[++xi])]] + [['/boot/header', pieces[0]]] -object -seq -where [pieces     = s.split(/\n__DATA__$/m),
                                                                                                                              attributes = pieces[1].split(/\n(\S+)\n/m).slice(1),
                                                                                                                              decode(s)  = s.replace(/^  /mg, '')],
 
-  tangible.serialize_image(state) = '#{state["/boot/kernel"]}\n__DATA__\n#{data}' -where [serialize(name) = '#{name}\n#{state[name].replace(/^mg/, "  ")}',
+  tangible.serialize_image(state) = '#{state["/boot/header"]}\n__DATA__\n#{data}' -where [serialize(name) = '#{name}\n#{state[name].replace(/^mg/, "  ")}',
                                                                                           data            = state /keys *serialize -seq -re- it.join('\n')],
   using.caterwaul});
 
@@ -1740,11 +1741,16 @@ is then invoked on each file interned into that root directory. For example, in 
 
 | fn compile
 
-This instructs Tangible to invoke the 'compile' function on each name/value pair that is interned into /fn.
+This instructs Tangible to invoke the 'compile' function on each name/value pair that is interned into /fn. Processing of /conf/namespaces is handled by /boot/init, not by the kernel itself.
 
-  tangible.namespaces = {},
-  tangible.compiler   = $(':all'),
-  tangible.fn         = capture [compile(name, value) = tangible.fn[name.replace(/.*\//, '')] = tangible.compiler(value)],
+  tangible.namespaces                   = {},
+  tangible.namespace(ns, function_name) = tangible.namespaces[ns] -eq- f -then- attribute_nodes %k%[x.substr(1, ns.length) === ns] /pairs *![x[0] /-f/ x[1]] /seq
+                                          -where [f = function_name.constructor === Function ? function_name : tangible.fn[function_name]],
+
+  tangible.compiler                     = $(':all'),
+  tangible.intern(name)(value)          = tangible.namespaces[name /!namespace_for](name, value),
+  tangible.fn                           = capture [compile(name, value) = tangible.fn[name.replace(/.*\//, '')] = tangible.compiler(value),
+                                                   save()               = self_lock = self_lock /~flat_map/ "tangible.self /~val/ tangible.serialize_image(tangible.state())".qf],
 
 Association and retrieval.
 Like self-modifying Perl, Tangible abstracts the association and retrieval API. Unlike self-modifying Perl, this is done by modifying the mount table instead of by using ad-hoc patterns
@@ -1758,10 +1764,12 @@ its new state. The Tangible kernel rate-limits save requests to prevent disk hog
                                : attribute_nodes %v*[x.val()] -seq,
 
   where [attribute_nodes                 = null,        // Must initialize this before doing anything with the attribute table
-         attribute_node_for(name, value) = tangible.nodes.virtual() -se- it.val(value) /when.value
-                                                                    -se- it / linear_edge /~to/ tangible.save_trigger],
-  using.caterwaul,
-  using[caterwaul.invariant]});
+         attribute_node_for(name, value) = tangible.nodes.virtual() <se> it.val(value) -when.value -then- it.signal() /~push/ tangible.fn.save
+                                                                                                   -then- it.signal() /~push/ tangible.intern(name),
+         namespace_for(name)             = /\/([^\/]+)/.exec(name) -re- it[1],
+         self_lock                       = future()(null)],
+
+  using.caterwaul});
 
 __
 meta::sdoc('js::tangible.nodes', <<'__');
