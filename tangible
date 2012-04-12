@@ -1288,10 +1288,10 @@ __DATA__
 /boot/init
   function (action) {
     // Initialize the namespace map.
-    tangible('/conf/namespaces').val().split(/\n/) %!/^\s*(#.*)$/.qf *![tangible.namespace.apply(tangible, x.split(/\s+/))] -seq,
+    tangible('/conf/namespaces').val().split(/\n/) %!/^\s*(#.*)$/.qf %[x.length] *![tangible.namespace.apply(tangible, x.split(/\s+/))] -seq,
   
     // Run the main function, defaulting to /conf/default-action.
-    tangible.fn[action || tangible('/conf/default-action').val()].apply(tangible, Array.prototype.slice.call(arguments, 1))}
+    tangible.fn[action || tangible('/conf/default-action').val().replace(/^\s*|\s*$/g, '')].apply(tangible, Array.prototype.slice.call(arguments, 1))}
 
 /boot/kernel
   (function(f) {return f(f) } ) (function (initializer,key,undefined){(function(f){return f(f)})(function(initializer){var calls_init=function(){var f=function(){return f.init.apply(f,arguments)
