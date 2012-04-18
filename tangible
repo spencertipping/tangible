@@ -1724,3 +1724,9 @@ __DATA__
   Compiles modules into the global caterwaul instance. The module definitions can be compiled or uncompiled waul, optionally in SDoc format.
   
   tangible.compile(value, {caterwaul: $}), given [name, value]
+
+/namespace/namespace/
+  Namespace compiler.
+  Creates a namespace function.
+  
+  tangible.namespace_fn
