@@ -453,8 +453,11 @@ caterwaul.module('tangible.logical', ':all', function ($) {
 caterwaul.module('tangible', ':all', function ($) {
   tangible.init() = require('fs').unlink(process.env.tangible_rm) -when- process.env.tangible_rm
              -then- tangible.self /eq [tangible.nodes /~file/ process.env.tangible]
-             -then- state(require('fs').readFileSync(process.env.tangible, 'utf8') /!parse_image)
-             -then- compiler(tangible('/boot/init').val(), {tangible: tangible}).apply(tangible, process.env.tangible_args.split(/\n/)),
+             -then- tangible.self_name / eq [process.env.tangible]
+             -then- tangible.self_argv / eq [process.env.tangible_args.split(/\n/)]
+
+             -then- state(require('fs').readFileSync(tangible.self_name, 'utf8') /!parse_image)
+             -then- tangible('/boot/init').val() /!compile,
 
   using.caterwaul,
   using[caterwaul.tangible]});
