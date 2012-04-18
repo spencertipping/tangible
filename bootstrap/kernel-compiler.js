@@ -327,14 +327,14 @@ caterwaul.module('tangible.core', ':all', function ($) {
 // This module contains nodes that make sense both for Tangible clients and Tangible servers.
 
 caterwaul.module('tangible.nodes', ':all', function ($) {
-  tangible.nodes = wcapture [basic_node(g, s, n = result)  = node(s.call(n, v) -then- repeat(node, v, visited) -given [node, v, visited]) /where [repeat = node_repeat()]
-                                                  /-$.merge/ capture [val() = arguments.length ? this.apply(this, arguments) : g.call(this)],
+  tangible.nodes = wcapture [basic_node(g, s, n = result) = node(s.call(n, v) -then- repeat(node, v, visited) -given [node, v, visited]) /where [repeat = node_repeat()]
+                                                 /-$.merge/ capture [val() = arguments.length ? this.apply(this, arguments) : g.call(this)],
 
 // Read/write nodes.
 // These have a logical state that can be modified by using the val() setter. In most cases, e.g. files, state changes correspond to external side-effects.
 
-                             virtual(v = '')               = "future()(v)".qf     /-basic_node/ "future()(v = _)".qf,
-                             file(path)                    = "read_file(path)".qf /-basic_node/ "write_file(path, _)".qf,
+                             virtual(v = '') = "v".qf               /-basic_node/ "future()(v = _)".qf,
+                             file(path)      = "read_file(path)".qf /-basic_node/ "write_file(path, _)".qf,
 
 // Read-only nodes.
 // These have no-op writers, and these nodes propagate their state when read. This is useful for situations where a node is connected as an observer to an external data source. For example,
