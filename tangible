@@ -352,15 +352,17 @@ meta::function('boot', <<'__');
 # Boots this Tangible instance. The kernel decides whether it is running in
 # client or server mode.
 
-my @argv = @_;
+my ($options, @argv) = separate_options(@_);
 my $temp = temporary_name();
 
 $ENV{tangible}      = $0;
 $ENV{tangible_args} = join "\n", @argv;
-$ENV{tangible_rm}   = $temp;
+$ENV{tangible_rm}   = $temp unless $$options{-d} || $$options{'--debug'};
 
+terminal::info('saving image');
 save();
 
+terminal::info('booting image');
 file::write($temp, retrieve("tangible::/boot/kernel"));
 enable();
 exec "node '$temp'";
