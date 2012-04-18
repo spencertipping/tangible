@@ -40,7 +40,7 @@ against attribute names. Also unlike self-modifying Perl, association is asynchr
 its new state. The Tangible kernel rate-limits save requests to prevent disk hogging.
 
         keys()          = attribute_nodes /keys -seq,
-        attribute(name) = attribute_nodes[name] -oeq- attribute_node_for(name) /-$.merge/ capture [rm() = delete attribute_nodes[name]],
+        attribute(name) = attribute_nodes[name] -ocq- attribute_node_for(name) /-$.merge/ capture [rm() = delete attribute_nodes[name]],
 
         state(s)        = s ? attribute_nodes -eq- {} -then- s /pairs *![attribute_nodes[x[0]] = attribute_node_for(x[0], x[1])] /seq
                             : attribute_nodes %v*[x.val()] -seq],
