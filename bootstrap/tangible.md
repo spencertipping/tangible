@@ -20,7 +20,7 @@ Upon booting, the kernel compiles /boot/init, which can refer to 'tangible' and 
                  -then- tangible.self_argv / eq [process.env.tangible_args.split(/\n/)]
 
                  -then- state(require('fs').readFileSync(tangible.self_name, 'utf8') /!parse_image)
-                 -then- tangible('/boot/init').val() /!compile,
+                 -then- tangible('/boot/init').val() /!tangible.compile,
 
       using.caterwaul,
       using[caterwaul.tangible]});
