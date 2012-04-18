@@ -1736,21 +1736,23 @@ authoritative; artifacts of those attributes are not stored or otherwise readabl
 caterwaul.module('tangible.logical', ':all', function ($) {
 
 Namespaces.
-Namespaces are stored in /conf/namespaces. This file contains a map of root-directory to handler, where the handler refers to the name of a function file that should be compiled. This handler
-is then invoked on each file interned into that root directory. For example, in order to support /fn, /conf/namespaces contains an entry like this:
+Namespaces are stored in /namespace. Each file here contains a function definition that is invoked whenever the given file is created in the corresponding directory. So, for example,
+/namespace/fn would contain a function definition that compiled any file in /fn and made it available within tangible.fn. There is no /namespace/namespace, unfortunately; the behavior of
+/namespace is baked into the kernel.
 
-| fn compile
+Note that you can define the roles of subdirectories using more complex patterns; e.g. /namespace/usr/bin. Also note that namespaces are not necessarily mutually exclusive. If a file is
+associated into multiple namespaces, the namespace associator functions will be run in an unspecified order.
 
-This instructs Tangible to invoke the 'compile' function on each name/value pair that is interned into /fn. Processing of /conf/namespaces is handled by /boot/init, not by the kernel itself.
+  tangible.compiler             = $(':all'),
+  tangible.sdoc(code)           = code.split(/\n\n\s*/) %/^[^A-Z|]/.test -seq -re- it.join('\n\n'),
+  tangible.compile(code)        = tangible.compiler(tangible.sdoc(code)),
 
-  tangible.namespaces                   = {},
-  tangible.namespace(ns, function_name) = tangible.namespaces[ns] -eq- f -then- attribute_nodes %k%[x.substr(1, ns.length) === ns] /pairs *![x[0] /-f/ x[1]] /seq
-                                          -where [f = function_name.constructor === Function ? function_name : tangible.fn[function_name]],
+  tangible.compiled_namespaces  = {},
+  tangible.namespace_fn(name)   = tangible.compiled_namespaces[name] -ocq- tangible.compile(tangible.attribute(name).val()),
+  tangible.namespaces_for(name) = tangible.keys() %~!/\/namespace\/(.*)/.exec %[name.substr(1, x[1].length) === x[1]] *[x[0]] -seq,
+  tangible.intern(name)(value)  = tangible.namespaces_for(name) *![tangible.namespace_fn(x)(name, value)] -seq,
 
-  tangible.compiler                     = $(':all'),
-  tangible.intern(name)(value)          = tangible.namespaces[name /!namespace_for](name, value),
-  tangible.fn                           = capture [compile(name, value) = tangible.fn[name.replace(/.*\//, '')] = tangible.compiler(value),
-                                                   save()               = self_lock = self_lock /~flat_map/ "tangible.self /~val/ tangible.serialize_image(tangible.state())".qf],
+  tangible.save()               = self_lock = self_lock /~flat_map/ "tangible.self /~val/ tangible.serialize_image(tangible.state())".qf,
 
 Association and retrieval.
 Like self-modifying Perl, Tangible abstracts the association and retrieval API. Unlike self-modifying Perl, this is done by modifying the mount table instead of by using ad-hoc patterns
@@ -1764,7 +1766,7 @@ its new state. The Tangible kernel rate-limits save requests to prevent disk hog
                                : attribute_nodes %v*[x.val()] -seq,
 
   where [attribute_nodes                 = null,        // Must initialize this before doing anything with the attribute table
-         attribute_node_for(name, value) = tangible.nodes.virtual() <se> it.val(value) -when.value -then- it.signal() /~push/ tangible.fn.save
+         attribute_node_for(name, value) = tangible.nodes.virtual() <se> it.val(value) -when.value -then- it.signal() /~push/ tangible.save
                                                                                                    -then- it.signal() /~push/ tangible.intern(name),
          namespace_for(name)             = /\/([^\/]+)/.exec(name) -re- it[1],
          self_lock                       = future()(null)],
