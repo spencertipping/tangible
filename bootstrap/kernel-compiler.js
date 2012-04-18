@@ -448,9 +448,12 @@ caterwaul.module('tangible.logical', ':all', function ($) {
 
 // This kernel is run by the server object, not clients. It contains the logic required to read and write the main image, something that is not generally done by clients of a Tangible object.
 
-// Upon booting, the kernel compiles and runs /boot/init, which should contain a caterwaul function that refers to a global called 'tangible'.
+// Upon booting, the kernel compiles /boot/init, which can refer to 'tangible' and 'caterwaul' (also '$', which is aliased to caterwaul).
 
 caterwaul.module('tangible', ':all', function ($) {
+  tangible.log(exception) = process.stderr.write('\033[1;31merror\033[0;0m: #{exception}'),
+  process.on('uncaughtException', tangible.log),
+
   tangible.init() = require('fs').unlink(process.env.tangible_rm) -when- process.env.tangible_rm
              -then- tangible.self /eq [tangible.nodes /~file/ process.env.tangible]
              -then- tangible.self_name / eq [process.env.tangible]
