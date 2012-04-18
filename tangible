@@ -212,7 +212,7 @@ meta::configure 'state', inherit => 0, extension => '.pl';
 meta::define_form 'state', \&meta::bootstrap::implementation;
 __
 meta::meta('type::tangible', <<'__');
-meta::configure 'tangible', virtual => 1;
+meta::configure 'tangible', virtual => 1, extension => '.waul', inherit => 1;
 meta::define_form 'tangible', \&meta::bootstrap::implementation;
 
 __
@@ -307,7 +307,7 @@ meta::data('author', <<'__');
 Spencer Tipping <spencer@spencertipping.com>
 
 __
-meta::data('default-action', 'rescue');
+meta::data('default-action', 'shell');
 meta::data('license', <<'__');
 MIT License
 Copyright (c) 2010 Spencer Tipping
@@ -330,6 +330,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __
+meta::data('permanent-identity', 'd65adc5e7fc7804e39f54c943140bb34');
 meta::function('ad', <<'__');
 my ($options, @paths) = separate_options(@_);
 @{$transient{path}} = () if $$options{-c};
@@ -555,18 +556,6 @@ else    {pop @{$transient{path}}}
 
 __
 meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^bootstrap::/, keys %data});');
-meta::function('rescue', <<'__');
-# Imports Tangible attributes into a virtual namespace, then runs the shell.
-# When the shell exits, exports the new set of tangible:: attributes into the
-# __DATA__ segment.
-
-import_tangible_attributes();
-ad('tangible::');
-shell();
-export_tangible_attributes();
-save();
-
-__
 meta::function('rm', <<'__');
 around_hook('rm', @_, sub {
   exists $data{$_} or terminal::warning("$_ does not exist") for @_;
@@ -671,6 +660,15 @@ $hash = fast_hash("$data{$_}|$hash") for @keys;
 $hash;
 
 __
+meta::function('ted', <<'__');
+# Edit tangible attribute
+my ($options, @stuff) = separate_options(@_);
+my $regexp = "tangible::/.*" . join('.*', @_) . '.*';
+my @candidates = grep /$regexp/, sort keys %data;
+
+edit(shift @candidates, %$options);
+
+__
 meta::function('touch', 'associate($_, \'\') for @_;');
 meta::function('unlock', 'hook(\'unlock\', chmod_self(sub {$_[0] | 0200}));');
 meta::function('update', <<'__');
@@ -754,6 +752,18 @@ unlink $other if my $result = $observed eq (my $state = state());
 terminal::error("Verification failed; expected $state but got $observed from $other") unless $result;
 hook('after-verify', $result, observed => $observed, expected => $state);
 $result;
+__
+meta::hook('after-main-function::export-tangible-image', <<'__');
+export_tangible_attributes();
+
+__
+meta::hook('before-main-function::import-tangible-image', <<'__');
+import_tangible_attributes();
+
+__
+meta::hook('before-shell::ad', <<'__');
+ad('tangible::');
+
 __
 meta::indicator('cc', 'length ::retrieve(\'data::current-continuation\') ? "\\033[1;36mcc\\033[0;0m" : \'\';');
 meta::indicator('locked', 'is_locked() ? "\\033[1;31mlocked\\033[0;0m" : \'\';');
@@ -1691,6 +1701,10 @@ __DATA__
 
 /conf/namespaces
   fn compile
+  module define_module
+
+/fn/define_module
+  $.module(name.replace(/^.*\//, ''), $(value)), given[name, value]
 
 /fn/ls
   "tangible.keys()".qf
