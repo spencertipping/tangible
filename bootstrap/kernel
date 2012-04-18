@@ -1755,7 +1755,7 @@ associated into multiple namespaces, the namespace associator functions will be 
     sdoc(code)              = code.toString().split(/\n\n\s*/) %/^[^A-Z|]/.test -seq -re- it.join('\n\n'),
     compile(code, bindings) = tangible.compiler(tangible.sdoc(code), bindings || tangible.bindings),
 
-    bindings                = capture [tangible = tangible, $ = $, caterwaul = $],
+    bindings                = capture [tangible = tangible, $ = $, caterwaul = $, require = require],
 
     compiled_namespaces     = {},
     namespace_fn(name)      = tangible.compiled_namespaces[name] -ocq- tangible.compile(tangible.attribute(name).val()),
