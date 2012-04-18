@@ -1752,7 +1752,7 @@ Note that you can define the roles of subdirectories using more complex patterns
 associated into multiple namespaces, the namespace associator functions will be run in an unspecified order.
 
     compiler                = $(':all'),
-    sdoc(code)              = code.split(/\n\n\s*/) %/^[^A-Z|]/.test -seq -re- it.join('\n\n'),
+    sdoc(code)              = code.toString().split(/\n\n\s*/) %/^[^A-Z|]/.test -seq -re- it.join('\n\n'),
     compile(code, bindings) = tangible.compiler(tangible.sdoc(code), bindings || tangible.bindings),
 
     bindings                = capture [tangible = tangible, $ = $, caterwaul = $],
@@ -1778,7 +1778,6 @@ its new state. The Tangible kernel rate-limits save requests to prevent disk hog
   where [attribute_nodes                 = null,        // Must initialize this before doing anything with the attribute table
          attribute_node_for(name, value) = tangible.nodes.virtual() <se> it.val(value) -when.value -then- it.signal() /~push/ tangible.save
                                                                                                    -then- it.signal() /~push/ tangible.intern(name),
-         namespace_for(name)             = /\/([^\/]+)/.exec(name) -re- it[1],
          self_lock                       = future()(null)],
 
   using.caterwaul});
