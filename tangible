@@ -1308,9 +1308,6 @@ __
 internal::main();
 
 __DATA__
-/boot/init
-  process.stderr.write('\033[1;31merror\033[0;0m: This tangible instance has no initialization function.\n')
-
 /boot/kernel
   (function(f) {return f(f) } ) (function (initializer,key,undefined){(function(f){return f(f)})(function(initializer){var calls_init=function(){var f=function(){return f.init.apply(f,arguments)
   };return f},original_global=typeof caterwaul==="undefined"?undefined:caterwaul,caterwaul_global=calls_init();caterwaul_global.deglobalize=function(){caterwaul=original_global;
