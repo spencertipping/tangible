@@ -405,7 +405,9 @@ caterwaul.module('tangible.logical', ':all', function ($) {
 
   tangible.compiler             = $(':all'),
   tangible.sdoc(code)           = code.split(/\n\n\s*/) %/^[^A-Z|]/.test -seq -re- it.join('\n\n'),
-  tangible.compile(code)        = tangible.compiler(tangible.sdoc(code)),
+  tangible.compile(code)        = tangible.compiler(tangible.sdoc(code), tangible.bindings),
+
+  tangible.bindings             = capture [tangible = tangible, $ = $],
 
   tangible.compiled_namespaces  = {},
   tangible.namespace_fn(name)   = tangible.compiled_namespaces[name] -ocq- tangible.compile(tangible.attribute(name).val()),

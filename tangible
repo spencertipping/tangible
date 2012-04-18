@@ -1688,3 +1688,5 @@ __DATA__
   result_as_WmBVuW4VpxVrrgptR00Ye1.caterwaul_expression_ref_table= {e: ( "caterwaul.tangible" ) ,e1: ( "caterwaul" ) } ;
   return(result_as_WmBVuW4VpxVrrgptR00Ye1) } ) .call(this,caterwaul.tangible,caterwaul) )
   caterwaul.tangible.init()
+/namespace/module
+  $.module(name, tangible.compile(value)), given [name, value]
