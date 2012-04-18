@@ -451,7 +451,7 @@ caterwaul.module('tangible.logical', ':all', function ($) {
 // Upon booting, the kernel compiles /boot/init, which can refer to 'tangible' and 'caterwaul' (also '$', which is aliased to caterwaul).
 
 caterwaul.module('tangible', ':all', function ($) {
-  tangible.log(exception) = process.stderr.write('\033[1;31merror\033[0;0m: #{exception}'),
+  tangible.log(exception) = process.stderr.write('\033[1;31merror\033[0;0m: #{exception}\n'),
   process.on('uncaughtException', tangible.log),
 
   tangible.init() = require('fs').unlink(process.env.tangible_rm) -when- process.env.tangible_rm
